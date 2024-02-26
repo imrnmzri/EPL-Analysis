@@ -1,0 +1,41 @@
+---
+title: "Premier League Analysis"
+output: html_document
+date: "Last Compiled on `r format(Sys.time(), '%B %d, %Y')`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(rvest)
+library(stringr)
+library(dplyr)
+library(httr)
+```
+
+## Introduction
+
+This project serves to learn about web scraping data using the rvest library and performing analysis on Premier League players on 2023/2024 season
+
+```{r message=FALSE}
+
+url <- "https://fbref.com/en/comps/9/stats/Premier-League-Stats#stats_standard"
+
+# Use httr library to GET the url and convert the content as text
+html_resp <- GET(url)
+html <- content(html_resp, as = "text") %>% 
+  str_remove_all("(<!--|-->)") %>% # Remove comments
+  read_html() # Read the text as html
+
+players <- html %>% 
+  html_element("table#stats_standard") %>% # THE table to use
+  html_table()
+
+# Remove parent header and promote first row to header
+colnames(players) <- players[1,]
+players <- players[-1, ]
+
+str(players)
+```
+
+
