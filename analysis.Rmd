@@ -43,7 +43,9 @@ players <- players[-1, ]
 
 players <- players %>%
   mutate(`Min_Playing Time` = gsub(",", "", `Min_Playing Time`),
-         `Min_Playing Time` = as.integer(`Min_Playing Time`)) %>%
+         `Min_Playing Time` = as.integer(`Min_Playing Time`),
+         `PrgC_Progression` = as.integer(`PrgC_Progression`),
+         `Ast_Performance` = as.integer(`Ast_Performance`)) %>%
   filter(`Player` != "Player")
 
 colnames(players)
@@ -76,7 +78,7 @@ summary(xGA_per90_players)
 topxG_range <- quantile(xGA_per90_players$`xG_Per 90 Minutes`, 0.95)
 topxA_range <- quantile(xGA_per90_players$`xAG_Per 90 Minutes`, 0.95)
 
-xGA_per90_players$top_player <- ifelse(xGA_per90_players$`xG_Per 90 Minutes` >= topxG_range | xGA_per90_players$`xAG_Per 90 Minutes` >= topxA_range, "Top", "Bottom")
+xGA_per90_players$top_player <- ifelse(xGA_per90_players$`xG_Per 90 Minutes` >= topxG_range & xGA_per90_players$`xAG_Per 90 Minutes` >= topxA_range, "Top", "Bottom")
 
 ggplot(xGA_per90_players, aes(`xAG_Per 90 Minutes`, `xG_Per 90 Minutes`)) + 
   geom_jitter(aes(color = top_player)) +
@@ -91,3 +93,44 @@ ggplot(xGA_per90_players, aes(`xAG_Per 90 Minutes`, `xG_Per 90 Minutes`)) +
 
 ### Progressive Passes Analysis
 
+```{r warning=FALSE}
+
+PrgC_players <- players %>% 
+  drop_na(`PrgC_Progression`) %>%
+  filter(`Min_Playing Time` >= median_played)
+
+topPrgC_range <- quantile(PrgC_players$`PrgC_Progression`, 0.95)
+
+PrgC_players %>%
+  filter(`PrgC_Progression` >= topPrgC_range) %>%
+  top_n(10, `PrgC_Progression`) %>%
+  ggplot(aes(reorder(`Player`, `PrgC_Progression`), `PrgC_Progression`)) +
+  geom_col() +
+  coord_flip()
+
+
+```
+
+### Progressive Pass and Assists
+
+```{R}
+
+PrgC_Ast_players <- players %>% 
+  drop_na(`PrgC_Progression`, `Ast_Performance`) %>%
+  filter(`Min_Playing Time` >= median_played) %>%
+  select(`Player`, `PrgC_Progression`, `Ast_Performance`)
+
+topPrgC_range <- quantile(PrgC_Ast_players$`PrgC_Progression`, 0.95)
+topAst_range <- quantile(PrgC_Ast_players$`Ast_Performance`, 0.95)
+
+PrgC_Ast_players$top_player <- ifelse(PrgC_Ast_players$`PrgC_Progression` >= topPrgC_range & PrgC_Ast_players$`Ast_Performance` >= topAst_range, "Top", "Bottom")
+
+ggplot(PrgC_Ast_players, aes(`PrgC_Progression`, `Ast_Performance`)) + 
+  geom_jitter(aes(color = top_player)) +
+  geom_text_repel(aes(label = ifelse(top_player == "Top", `Player`, NA)), vjust = 0.5, size = 3) +
+  geom_abline(linetype = "dashed") +
+  labs(caption = paste("Median Minutes:", median_played)) +
+  scale_color_manual(values = c("Top" = "red", "Bottom", "gray")) +
+  theme(legend.position = "none")
+
+```
